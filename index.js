@@ -722,7 +722,7 @@ module.exports = class CachePolicy {
      */
     _useStaleIfError() {
         const sie = toNumberOrZero(this._rescc['stale-if-error']);
-        return sie > 0 && this._allowsReuse() && this.maxAge() + sie > this.age();
+        return sie > 0 && this._allowsReuse() && this.maxAge() + sie >= this.age();
     }
 
     /** See `evaluateRequest()` for a more complete solution

@@ -351,8 +351,8 @@ describe('Update revalidated', function() {
             }
         });
 
-        it('stops fallback at the end of the stale-if-error window', function() {
-            const cache = new CachePolicy(request, withHeaders(response, { age: '101' }));
+        it('stops fallback beyond the stale-if-error window', function() {
+            const cache = new CachePolicy(request, withHeaders(response, { age: '102' }));
             cache.now = () => cache._responseTime;
             assert.strictEqual(cache.revalidatedPolicy(request, { status: 503, headers: {} }).modified, true);
         });
