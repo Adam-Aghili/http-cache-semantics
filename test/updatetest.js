@@ -324,6 +324,19 @@ describe('Update revalidated', function() {
             });
         }
 
+        it('does not match HEAD against a stored POST response', function() {
+            const postRequest = Object.assign({}, request, { method: 'POST' });
+            const headRequest = Object.assign({}, request, { method: 'HEAD' });
+            const cache = new CachePolicy(postRequest, response);
+            cache.now = () => cache._responseTime;
+
+            assert(cache.storable());
+            const result = cache.revalidatedPolicy(headRequest, { status: 503, headers: {} });
+            assert.notStrictEqual(result.policy, cache);
+            assert.strictEqual(result.modified, true);
+            assert.strictEqual(result.matches, false);
+        });
+
         it('rejects Vary wildcard fallback', function() {
             const cache = new CachePolicy(request, withHeaders(response, { vary: '*' }));
             cache.now = () => cache._responseTime;
@@ -338,8 +351,8 @@ describe('Update revalidated', function() {
             }
         });
 
-        it('stops fallback at the end of the stale-if-error window', function() {
-            const cache = new CachePolicy(request, withHeaders(response, { age: '101' }));
+        it('stops fallback beyond the stale-if-error window', function() {
+            const cache = new CachePolicy(request, withHeaders(response, { age: '102' }));
             cache.now = () => cache._responseTime;
             assert.strictEqual(cache.revalidatedPolicy(request, { status: 503, headers: {} }).modified, true);
         });
