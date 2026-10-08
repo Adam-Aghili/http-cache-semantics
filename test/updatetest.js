@@ -324,6 +324,19 @@ describe('Update revalidated', function() {
             });
         }
 
+        it('does not match HEAD against a stored POST response', function() {
+            const postRequest = Object.assign({}, request, { method: 'POST' });
+            const headRequest = Object.assign({}, request, { method: 'HEAD' });
+            const cache = new CachePolicy(postRequest, response);
+            cache.now = () => cache._responseTime;
+
+            assert(cache.storable());
+            const result = cache.revalidatedPolicy(headRequest, { status: 503, headers: {} });
+            assert.notStrictEqual(result.policy, cache);
+            assert.strictEqual(result.modified, true);
+            assert.strictEqual(result.matches, false);
+        });
+
         it('rejects Vary wildcard fallback', function() {
             const cache = new CachePolicy(request, withHeaders(response, { vary: '*' }));
             cache.now = () => cache._responseTime;
