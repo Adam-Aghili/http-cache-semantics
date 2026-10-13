@@ -231,6 +231,14 @@ describe('Satisfies', function() {
         );
     });
 
+    it('when the incoming request method is omitted', function() {
+        const policy = new CachePolicy(
+            { method: 'POST', headers: {} },
+            { status: 200, headers: { 'cache-control': 'max-age=2' } }
+        );
+        assert(policy.satisfiesWithoutRevalidation({ headers: {} }));
+    });
+
     it('when fresh and proxy revalidating', function() {
         const policy = new CachePolicy(
             { headers: {} },

@@ -455,7 +455,7 @@ module.exports = class CachePolicy {
             // the request method associated with the stored response allows it to be used for the presented request, and
             (!req.method ||
                 this._method === req.method ||
-                (allowHeadMethod && 'HEAD' === req.method)) &&
+                (allowHeadMethod && this._method === 'GET' && 'HEAD' === req.method)) &&
             // selecting header fields nominated by the stored response (if any) match those presented, and
             this._varyMatches(req)
         );
@@ -722,7 +722,7 @@ module.exports = class CachePolicy {
      */
     _useStaleIfError() {
         const sie = toNumberOrZero(this._rescc['stale-if-error']);
-        return sie > 0 && this._allowsReuse() && this.maxAge() + sie > this.age();
+        return sie > 0 && this._allowsReuse() && this.maxAge() + sie >= this.age();
     }
 
     /** See `evaluateRequest()` for a more complete solution
