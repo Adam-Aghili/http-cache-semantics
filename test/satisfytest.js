@@ -65,6 +65,58 @@ describe('Satisfies', function() {
             });
         }
 
+        for (const directive of ['must-revalidate', 'public', 's-maxage=60']) {
+            for (const shared of [true, false]) {
+                for (const stale of [false, true]) {
+                    it(`handles authenticated ${directive} responses in ${shared ? 'shared' : 'private'} caches when ${stale ? 'stale' : 'fresh'}`, function() {
+                        const original = new CachePolicy(
+                            { url: '/account', headers: { authorization: 'Bearer example' } },
+                            { headers: {
+                                age: stale ? '60' : '10',
+                                'cache-control': `max-age=60, ${directive}, stale-while-revalidate=100, stale-if-error=100`,
+                            } },
+                            { shared }
+                        );
+                        // RFC 9111 section 3.5 permits these directives to opt authenticated responses into shared reuse.
+                        const requiresValidation = stale && (directive === 'must-revalidate' || (shared && directive === 's-maxage=60'));
+                        for (const policy of [original, CachePolicy.fromObject(original.toObject())]) {
+                            policy.now = () => policy._responseTime;
+                            const request = { url: '/account', headers: { 'cache-control': 'max-stale=100' } };
+                            assert.strictEqual(policy.storable(), true);
+                            assert.strictEqual(policy.stale(), stale);
+                            if (!stale) {
+                                assert.strictEqual(policy.satisfiesWithoutRevalidation({ url: '/account', headers: {} }), true);
+                            }
+                            assert.strictEqual(policy.satisfiesWithoutRevalidation(request), !requiresValidation);
+                            assert.strictEqual(Boolean(policy.evaluateRequest(request).response), !requiresValidation);
+                            if (stale) {
+                                assert.strictEqual(policy.useStaleWhileRevalidate(), !requiresValidation);
+                                assert.strictEqual(policy.revalidatedPolicy(request, { status: 503, headers: {} }).policy === policy, !requiresValidation);
+                            }
+                        }
+                    });
+                }
+            }
+
+            it(`honors Vary: Authorization despite the ${directive} shared-cache opt-in`, function() {
+                const policy = new CachePolicy(
+                    { url: '/account', headers: { authorization: 'Bearer example' } },
+                    { headers: {
+                        'cache-control': `max-age=60, ${directive}, stale-if-error=100`,
+                        vary: 'Authorization',
+                    } }
+                );
+                policy.now = () => policy._responseTime;
+                assert.strictEqual(policy.storable(), true);
+                assert.strictEqual(policy.satisfiesWithoutRevalidation({ url: '/account', headers: { authorization: 'Bearer example' } }), true);
+                for (const headers of [{}, { authorization: 'Bearer different' }]) {
+                    const request = { url: '/account', headers };
+                    assert.strictEqual(policy.satisfiesWithoutRevalidation(request), false);
+                    assert.strictEqual(policy.revalidatedPolicy(request, { status: 503, headers: {} }).modified, true);
+                }
+            });
+        }
+
         for (const directive of ['private', 'proxy-revalidate', 's-maxage=0']) {
             it(`allows private-cache stale reuse with ${directive}`, function() {
                 const policy = new CachePolicy(

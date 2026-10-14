@@ -452,7 +452,7 @@ module.exports = class CachePolicy {
         return !!(
             (!this._url || this._url === req.url) &&
             this._host === req.headers.host &&
-            // the request method associated with the stored response allows it to be used for the presented request, and
+            // HEAD can revalidate a stored GET representation, but not a response to another method.
             (!req.method ||
                 this._method === req.method ||
                 (allowHeadMethod && this._method === 'GET' && 'HEAD' === req.method)) &&

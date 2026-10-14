@@ -232,6 +232,12 @@ Use this method to update the cache after receiving a new response from the orig
 
 For `stale-if-error` fallback, pass the original request identity (`url`, `method`, `host`, and headers named by `Vary`) along with the revalidation request headers. The request must match the stored response, and response directives requiring validation take precedence over stale reuse. Shared responses with `Set-Cookie` retain the library's conservative requirement for an explicit `public` or `immutable` opt-in.
 
+### Authenticated responses in shared caches
+
+Following [RFC 9111 section 3.5](https://www.rfc-editor.org/rfc/rfc9111.html#section-3.5), `must-revalidate`, `public`, and `s-maxage` can permit a shared cache to reuse a response originally requested with `Authorization`. When fresh, such a response can satisfy a matching request without `Authorization`, unless `Vary: Authorization` distinguishes it. Fresh `must-revalidate` responses previously required validation unconditionally; they now follow this rule. Once stale, `must-revalidate` and shared `s-maxage` responses still require successful validation, even when the request permits `max-stale` or the response permits stale extensions.
+
+An origin serving user-specific content must choose appropriate cache controls, such as `private` or `no-store`, or explicitly vary the representation by `Authorization`. This library does not independently partition a shared cache by authenticated user. A private cache must remain scoped to its user by the application.
+
 # Yo, FRESH
 
 ![satisfiesWithoutRevalidation](fresh.jpg)
